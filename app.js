@@ -17,6 +17,9 @@ var vars = {
 
 var message = {flag: false, text: "", emergency: false};
 
+var timer = 0;
+
+
 app.use('/cp', express.static('cp'));
 
 app.get('/json/message', function (req, res) {
@@ -27,23 +30,28 @@ app.get('/json/message', function (req, res) {
         if (vars.button1)
             text = "Просьба покинуть здание.";
         if (vars.button2)
-            text = "Экстренное сообщени 2.";
+            text = "Экстренное сообщени 1.";
         if (vars.button3)
-            text = "Экстренное сообщени 3.";
+            text = "Экстренное сообщени 2.";
 
         message.flag = true;
+        
+        if (timer) 
+            clearTimeout(timer);
 
-        setTimeout(function(){
+        timer = setTimeout(function(){
+            timer = 0;
             message.flag = false;
             vars.button1 = false;
             vars.button2 = false;
             vars.button3 = false;
             io.emit('vars', vars);
+            
         }, MESSAGE_TIMEOUT);
     }
     
     
-    console.log("request");
+    // console.log("request");
     res.json({
         'flag' : message.flag,
         'text' : text,
@@ -66,15 +74,46 @@ io.on('connection', function (socket) {
         console.log(data);
         message.text = data;
         message.flag = true;
-        setTimeout(function() {message.flag = false; message.text = ""}, MESSAGE_TIMEOUT);
+        vars.button1 = false;
+        vars.button2 = false;
+        vars.button3 = false;
+        io.emit('vars', vars);
+
+
+        if (timer)
+            clearTimeout(timer);
+        timer = setTimeout(function() {
+            message.flag = false; 
+            message.text = ""; 
+            message.emergency = false;
+            timer = 0;
+        }, MESSAGE_TIMEOUT);
     });
 
     socket.on('vars', function(data){
         console.log(data);
+
+        var name_found = '';
+        var value_found = false;
         for(var name in data){
             vars[name] = data[name];
-
+            name_found = name;
+            value_found = data[name];
         }
+
+        for (var name in vars) {
+            if (name != name_found)
+                vars[name] = false;
+        }
+
+        if (!value_found && timer) {
+            message.flag = false;
+            clearTimeout(timer);
+            timer = 0;
+        }
+
+        io.emit('vars', vars);
+
     })
 });
 

@@ -64,6 +64,34 @@ app.get('/json/data', function (req, res) {
     res.json(vars);
 });
 
+app.get('/json/set', function (req, res){
+    var button1 = req.query.button1;
+    var button2 = req.query.button2;
+    var button3 = req.query.button3;
+
+    console.log('buttons = %d, %d, %d', button1, button2, button3);
+
+    res.writeHead(200, {'content-type': 'text/plain'});
+    res.end('Done.');
+
+    if (!isNaN(button1)) {
+        vars["button1"] = (button1 > 0);
+    }
+
+    if (!isNaN(button2)) {
+        vars["button2"] = (button2 > 0);
+    }
+
+    if (!isNaN(button3)) {
+        vars["button3"] = (button3 > 0);
+    }
+
+
+    io.emit('vars', vars); // refresh GUI
+
+});
+
+
 
 
 io.on('connection', function (socket) {
@@ -116,5 +144,8 @@ io.on('connection', function (socket) {
 
     })
 });
+
+
+
 
 
